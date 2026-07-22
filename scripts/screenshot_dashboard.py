@@ -38,8 +38,16 @@ def main() -> None:
         for i, tab in enumerate(TABS):
             page.get_by_role("tab", name=tab).click()
             wait_idle(page)
+            # Streamlit scrolls inside an inner container, so full_page misses
+            # anything below the fold: grow the viewport to the content height.
+            height = page.evaluate(
+                "() => document.querySelector('[data-testid=\"stAppViewContainer\"]').scrollHeight"
+            )
+            page.set_viewport_size({"width": 1600, "height": min(int(height) + 80, 8000)})
+            page.wait_for_timeout(800)
             path = OUT / f"{i}_{_slug(tab)}.png"
-            page.screenshot(path=str(path), full_page=True)
+            page.screenshot(path=str(path))
+            page.set_viewport_size({"width": 1600, "height": 1000})
             print(f"saved {path}")
         browser.close()
 
