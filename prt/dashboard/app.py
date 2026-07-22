@@ -61,7 +61,8 @@ def main() -> None:  # pragma: no cover - UI, exercised manually
         sig = st.selectbox("Historique du signal", sorted(db.forecasts()["signal"].unique()) if not db.forecasts().empty else [])
         if sig:
             panel = db.forecasts(signal=sig).pivot(index="exec_date", columns="instrument_id", values="value")
-            st.line_chart(panel)
+            st.line_chart(panel.tail(250))
+            st.caption("Forecasts, 250 derniers jours")
 
     with tabs[3]:
         st.subheader("Ordres à exécuter (targets vs book)")
