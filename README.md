@@ -50,20 +50,20 @@ notes in each module docstring.
   carry no spurious lag. A generic CI test asserts no-lookahead for every
   (source, target) pair.
 
-## Quickstart (no terminal needed — mock data)
+## Quickstart (uv, no terminal needed — mock data)
 
 ```bash
-pip install -e ".[dev]"
-python -m prt.cli ingest   --db prt.db --mock     # synthetic history
-python -m prt.cli backtest --db prt.db            # stats + persisted PnLs
-python -m prt.cli targets  --db prt.db            # tomorrow's targets
-python -m prt.cli stream   --db prt.db --mock --max-ticks 200
-python -m prt.cli orders   --db prt.db
-pip install -e ".[dashboard]"
-streamlit run prt/dashboard/app.py -- --db prt.db
+uv sync --extra dev
+uv run python -m prt.cli ingest   --db prt.db --mock     # synthetic history
+uv run python -m prt.cli backtest --db prt.db            # stats + persisted PnLs
+uv run python -m prt.cli targets  --db prt.db            # tomorrow's targets
+uv run python -m prt.cli stream   --db prt.db --mock --max-ticks 200
+uv run python -m prt.cli orders   --db prt.db
+uv sync --extra dashboard
+uv run streamlit run prt/dashboard/app.py -- --db prt.db
 ```
 
-On the terminal machine: `pip install -e ".[bloomberg]"` and drop `--mock`.
+On the terminal machine: `uv sync --extra bloomberg` and drop `--mock`.
 
 ## Adding a signal
 
@@ -87,8 +87,8 @@ existing stack, standalone subsystem-PnL correlation, marginal Sharpe
 
 ## Tests / CI
 
-`pytest` runs the full chain (ingestion → signals → portfolio → backtest →
-live) on the deterministic `MockProvider` — zero Bloomberg dependency;
+`uv run pytest` runs the full chain (ingestion → signals → portfolio →
+backtest → live) on the deterministic `MockProvider` — zero Bloomberg dependency;
 `xbbg` is imported lazily in exactly one file. Tests needing a terminal are
 marked `@pytest.mark.requires_terminal` and skipped by default. GitHub
 Actions runs lint + tests on every push.
