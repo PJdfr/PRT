@@ -25,6 +25,28 @@ EPOCH = "2010-01-04"
 HORIZON = "2030-12-31"
 ROLL_RATIO = 0.98
 
+# realistic-ish starting levels so contract counts / notionals make sense
+PRICE0 = {
+    # bonds
+    "TU1": 103, "FV1": 108, "TY1": 112, "UXY1": 115, "US1": 118, "WN1": 122,
+    "DU1": 106, "OE1": 118, "RX1": 132, "UB1": 178, "OAT1": 128, "IK1": 118,
+    "G 1": 98, "JB1": 145, "CN1": 122, "YM1": 96, "XM1": 95,
+    # equity indices
+    "ES1": 6300, "NQ1": 23000, "RTY1": 2250, "VG1": 5400, "GX1": 24000,
+    "CF1": 8000, "Z 1": 8200, "SM1": 12500, "ST1": 35000, "EO1": 940,
+    "NK1": 40000, "TP1": 2850, "XP1": 8300, "PT1": 1500,
+    # commodities
+    "CL1": 70, "CO1": 74, "NG1": 3.0, "HO1": 2.3, "XB1": 2.2, "QS1": 680,
+    "GC1": 2400, "SI1": 29, "HG1": 4.2, "PL1": 950,
+    "C 1": 450, "S 1": 1050, "W 1": 550, "SB1": 19, "KC1": 320, "CT1": 68,
+    "CC1": 8000, "LC1": 190,
+    # fx spots
+    "EURUSD": 1.09, "GBPUSD": 1.27, "AUDUSD": 0.66, "NZDUSD": 0.60,
+    "USDJPY": 155, "USDCHF": 0.88, "USDCAD": 1.37, "USDSEK": 10.5, "USDNOK": 10.6,
+    # crypto
+    "BTC1": 100_000, "ETH1": 5_000,
+}
+
 
 def _root(ticker: str) -> str:
     """Strip the roll spec: 'TU1 R:03_0_R Comdty' -> 'TU1 Comdty'."""
@@ -49,7 +71,7 @@ class MockProvider(DataProvider):
             idx = pd.bdate_range(EPOCH, HORIZON)
             rng = np.random.default_rng(_seed(root))
             rets = rng.normal(0.0002, 0.01, len(idx))
-            price0 = 1.2 if (root.endswith("Curncy") and "CR" not in root and not root[0].isdigit()) else 100.0
+            price0 = PRICE0.get(root.rsplit(" ", 1)[0], 100.0)
             self._paths[root] = pd.Series(price0 * np.exp(np.cumsum(rets)), index=idx)
         return self._paths[root]
 
@@ -64,8 +86,14 @@ class MockProvider(DataProvider):
             # generic 2 = generic 1 in mild contango, so futures carry is well-defined
             return self._base_path(m.group(1) + "1" + m.group(3)) * 0.995
         path = self._base_path(root)
-        if ticker != root:  # adjusted series: rewritten (ratio) at every simulated roll
-            path = path * (ROLL_RATIO ** self._roll_count(root))
+        if ticker != root:
+            # Adjusted series: like real backward-ratio adjustment, only the
+            # history BEFORE each roll is rescaled — the latest point stays
+            # anchored at the current front price.  factor(t) = r^(rolls
+            # occurred after t), so every new roll rewrites the whole past.
+            quarters = (path.index.year - 2010) * 4 + (path.index.month - 1) // 3
+            exponent = np.clip(self._roll_count(root) - quarters, 0, None)
+            path = path * (ROLL_RATIO ** exponent)
         return path
 
     # ---------------- rolls -------------------------------------------
