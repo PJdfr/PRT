@@ -81,8 +81,7 @@ d'exécution**.
    d'une fenêtre mesure alors la sur/sous-performance de ces jours
    relativement au reste de leur année, pas le drift annuel.
 2. **Standardisation GARCH(1,1)** (moyenne nulle, fallback EWMA) :
-$$\sigma_t^2=\omega+\alpha\,\tilde r_{t-1}^2+\beta\,\sigma_{t-1}^2
-\qquad z_t=\tilde r_t/\sigma_t$$
+$$\sigma_t^2=\omega+\alpha\,\tilde r_{t-1}^2+\beta\,\sigma_{t-1}^2 \qquad z_t=\tilde r_t/\sigma_t$$
    les $z_t$ ne sont plus hétéroscédastiques.
 3. **Calendrier 365 jours** : chaque date est mappée sur son jour civil,
    le 29/02 est fusionné dans le 28/02 ; les jours sans return sont

@@ -28,9 +28,7 @@ class Carry(Signal):
 génériques **non ajustés** $G_1, G_2$ (espacement trimestriel, annualisé
 $\times 4$), risk-adjusted par la vol annualisée de l'instrument :
 
-$$c(t)=\frac{G_1(t)-G_2(t)}{G_1(t)}\times 4
-\qquad
-X(t)=\frac{c(t)}{\hat\sigma_{\mathrm{ann}}(t)}$$
+$$c(t)=\frac{G_1(t)-G_2(t)}{G_1(t)}\times 4 \qquad X(t)=\frac{c(t)}{\hat\sigma_{\mathrm{ann}}(t)}$$
 
 Un marché en backwardation ($G_1>G_2$) porte un carry long positif, un
 marché en contango un carry négatif.

@@ -40,13 +40,11 @@ Chaque sous-signal est pondéré par la qualité de **son propre** track
 record : son PnL standalone, aligné à la date de réalisation (le forecast
 émis en $t-2$ est réalisé par le return connu en $t$) :
 
-$$\pi_j(t)=S_j(t-2)\,r_t
-\qquad
-\tilde w_j(t)=\max\Big(0,\ \widehat{\mathrm{Sharpe}}_{[t-252n,\ t]}\big(\pi_j\big)\Big)$$
+$$\pi_j(t)=S_j(t-2)\,r_t \qquad \tilde w_j(t)=\max\Big(0,\ \widehat{\mathrm{Sharpe}}_{[t-252n,\ t]}\big(\pi_j\big)\Big)$$
 
-$$w_j(t)=\frac{\tilde w_j(t)}{\sum_k \tilde w_k(t)}
-\quad\text{(équipondération } 1/12 \text{ si } \textstyle\sum_k \tilde w_k=0
-\text{ ou historique} < 1 \text{ an)}$$
+$$w_j(t)=\frac{\tilde w_j(t)}{\sum_k \tilde w_k(t)}$$
+
+(équipondération $1/12$ si $\textstyle\sum_k \tilde w_k=0$ ou historique $<$ 1 an)
 
 Signal brut $M(t)=\sum_{j} w_j(t)\,S_j(t)$, puis normalisation commune vers
 $[-5,+5]$. Paramètre : $n$ = fenêtre (années) du Sharpe de pondération.

@@ -32,9 +32,9 @@ $$F(t)=\operatorname{clip}\!\Big(2.5\;\frac{X(t)}{\tfrac{1}{|u\le t|}\sum_{u\le 
 
 Combinaison des signaux (poids $w_s$ de la config, IDM) puis vol targeting :
 
-$$F_{\mathrm{comb}}=\operatorname{clip}\!\Big(\mathrm{IDM}\cdot\frac{\sum_s w_s F_s}{\sum_s w_s},-5,+5\Big)
-\qquad
-N_i(t)=\frac{F_{\mathrm{comb}}(t)}{2.5}\cdot\frac{w_i\,K\,\mathrm{IDM}\,\sigma^{\star}}{\hat\sigma_i(t)}$$
+$$F_{\mathrm{comb}}=\operatorname{clip}\!\Big(\mathrm{IDM}\cdot\frac{\sum_s w_s F_s}{\sum_s w_s},\,-5,\,+5\Big)$$
+
+$$N_i(t)=\frac{F_{\mathrm{comb}}(t)}{2.5}\cdot\frac{w_i\,K\,\mathrm{IDM}\,\sigma^{\star}}{\hat\sigma_i(t)}$$
 
 avec $K$ le capital, $\sigma^{\star}$ la vol cible du fund, $\hat\sigma_i$
 la vol EWMA de l'instrument, $w_i=1/N$. Buffering : on ne traite que si la
