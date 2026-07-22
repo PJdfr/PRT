@@ -93,7 +93,7 @@ def preview_targets(db: Database, config: Config) -> pd.DataFrame:
     """
     now = pd.Timestamp.now(tz="UTC")
     overrides: dict = {}
-    for inst_id, inst in config.instruments.items():
+    for inst_id in config.instruments:
         live = _live_price(db, inst_id)
         if live is None:
             continue
