@@ -45,7 +45,18 @@ marginal Sharpe. The dashboard "Corrélations" tab shows the same.
 
 - `dataview.py` — point-in-time views; anti-lookahead enforced by
   merge_asof on (knowledge_ts < decision_ts). Test: test_dataview.py.
+  Also `event_history(inst, type, before_year)`: raw EVENT-dated values
+  known before Jan 1 of a year — the sanctioned door for calendar signals
+  that need past years' returns (PIT by construction).
 - `base.py` — Signal ABC, registry (`__init_subclass__`), `scale_forecast`,
   `compute_all_forecasts` (persists to the forecasts table).
-- `momentum.py`, `carry.py` — built-ins, use them as templates.
+- `momentum.py` — 12 lagged one-month (21d) Sharpe sub-signals, each
+  weighted by its own rolling n-year subsystem Sharpe (clipped >= 0,
+  normalised; equal-weight fallback). Params in config: n_years.
+- `seaso.py` — calendar-day Sharpe profile over the past n COMPLETE years
+  (current year excluded: per-year detrending is only knowable at year
+  end), returns GARCH(1,1)-standardised, Feb 29 merged into Feb 28,
+  Sharpes averaged over centred windows [min_window..max_window].
+  Params: n_years, min_window, max_window. Module-level profile cache.
+- `carry.py` — futures term-structure slope / FX CR-vs-spot drift.
 - `lab.py` — decorrelation reports.

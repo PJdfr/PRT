@@ -28,7 +28,11 @@ RAW_CONFIG = {
         "decision_margin_minutes": 10,
     },
     "data": {"history_start": "2022-01-03", "daily_batch_utc": "22:30", "checksum_points": 20},
-    "signals": {"momentum": {"weight": 0.5}, "carry": {"weight": 0.5}},
+    "signals": {
+        "momentum": {"weight": 1.0, "n_years": 5},
+        "carry": {"weight": 1.0},
+        "seaso": {"weight": 1.0, "n_years": 5, "min_window": 5, "max_window": 10},
+    },
     "exchanges": {
         "us_rates": {"tz": "America/Chicago", "settle_time": "14:00"},
         "eurex_rates": {"tz": "Europe/Berlin", "settle_time": "17:15"},

@@ -119,6 +119,21 @@ class DataView:
         anti-lookahead test (used_knowledge_ts must be < decision_ts)."""
         return self._asof(inst_id, series_type, for_inst or inst_id)
 
+    # ---------------- completed-years history (for calendar signals) ----
+    def event_history(self, inst_id: str, series_type: str, before_year: int) -> pd.Series:
+        """Raw EVENT-dated values whose knowledge_ts is strictly before
+        Jan 1 (UTC) of `before_year`.
+
+        Provably point-in-time for any decision taken in `before_year` or
+        later — this is the sanctioned door for signals that need past
+        years' returns tagged by their actual calendar date (seasonality:
+        per-year detrending is only knowable once the year has ended)."""
+        src = self._source(inst_id, series_type)
+        if src.empty:
+            return pd.Series(dtype=float)
+        cutoff = pd.Timestamp(f"{before_year}-01-01", tz="UTC")
+        return src.loc[src["knowledge_ts"] < cutoff, "value"]
+
     # ---------------- calendar features (known in advance, no lag) ------
     def calendar(self, inst_id: str) -> pd.DataFrame:
         dates = self.exec_dates(inst_id)

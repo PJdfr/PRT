@@ -37,12 +37,18 @@ def instrument_vol(prices: pd.Series, span: int, min_periods: int = 20) -> pd.Se
 def combine_forecasts(
     per_signal: dict[str, pd.Series], weights: dict[str, float], config: Config
 ) -> pd.Series:
-    """Weighted average of forecasts x IDM, clipped to the forecast cap."""
+    """Weighted average of forecasts x IDM, clipped to the forecast cap.
+
+    A signal with no forecast on a date (e.g. not enough history yet)
+    contributes zero; dates where NO signal has a forecast stay NaN.
+    """
     active = {s: f for s, f in per_signal.items() if s in weights and weights[s] > 0}
     if not active:
         raise ValueError("no active signals to combine")
     total_w = sum(weights[s] for s in active)
-    combined = sum(per_signal[s] * (weights[s] / total_w) for s in active)
+    stacked = pd.concat(active, axis=1)
+    combined = (stacked.fillna(0.0) * pd.Series({s: weights[s] / total_w for s in active})).sum(axis=1)
+    combined[stacked.isna().all(axis=1)] = np.nan
     return (combined * config.fund.idm).clip(-config.fund.forecast_cap, config.fund.forecast_cap)
 
 

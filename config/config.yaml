@@ -24,8 +24,14 @@ data:
   checksum_points: 20         # trailing points compared to detect silent re-adjustment
 
 signals:
-  momentum: {weight: 0.5}
-  carry:    {weight: 0.5}
+  # 12 one-month (21d) Sharpe sub-signals, weighted by their own rolling
+  # n-year subsystem Sharpe (clipped at 0, normalised)
+  momentum: {weight: 1.0, n_years: 10}
+  carry:    {weight: 1.0}
+  # calendar-day Sharpe profile over the past n complete years, averaged
+  # over centred windows [min_window..max_window]; per-year detrended,
+  # GARCH(1,1)-standardised returns; Feb 29 merged into Feb 28
+  seaso:    {weight: 1.0, n_years: 10, min_window: 10, max_window: 30}
 
 # ---------------------------------------------------------------------
 # Exchange groups: IANA timezone + local settlement time (verify on terminal)

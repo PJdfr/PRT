@@ -24,7 +24,7 @@ def test_run_backtest_end_to_end(ingested_db, config):
     pnl = result.pnl_fund.dropna()
     assert len(pnl) > 400
     assert np.isfinite(pnl).all()
-    assert set(result.pnl_by_signal.columns) == {"momentum", "carry"}
+    assert set(result.pnl_by_signal.columns) == set(config.signal_weights)
     assert set(result.pnl_by_instrument.columns) == set(config.universe)
     assert result.stats["n_days"] == len(pnl)
     assert 0 < result.stats["ann_vol"] < 1.0
@@ -33,7 +33,7 @@ def test_run_backtest_end_to_end(ingested_db, config):
     fund = ingested_db.backtest_pnl(result.run_id, "fund")
     assert np.isclose(fund["fund"].sum(), pnl.sum())
     sub = ingested_db.backtest_pnl(result.run_id, "signal")
-    assert set(sub.columns) == {"momentum", "carry"}
+    assert set(sub.columns) == set(config.signal_weights)
 
 
 def test_realised_vol_in_target_ballpark(ingested_db, config):

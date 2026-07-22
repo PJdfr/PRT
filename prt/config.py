@@ -61,6 +61,7 @@ class Config:
     fund: FundConfig
     data: DataConfig
     signal_weights: dict[str, float]
+    signal_params: dict[str, dict] = field(default_factory=dict)
     instruments: dict[str, Instrument] = field(default_factory=dict)
     fx_conversion: dict[str, dict] = field(default_factory=dict)
 
@@ -124,11 +125,14 @@ def build_config(raw: dict) -> Config:
         daily_batch_utc=str(d.get("daily_batch_utc", "22:30")),
         checksum_points=int(d.get("checksum_points", 20)),
     )
-    weights = {name: float(s["weight"]) for name, s in raw.get("signals", {}).items()}
+    signals_raw = raw.get("signals", {})
+    weights = {name: float(s["weight"]) for name, s in signals_raw.items()}
+    params = {name: {k: v for k, v in s.items() if k != "weight"} for name, s in signals_raw.items()}
     return Config(
         fund=fund,
         data=data,
         signal_weights=weights,
+        signal_params=params,
         instruments=instruments,
         fx_conversion=raw.get("fx_conversion", {}),
     )
