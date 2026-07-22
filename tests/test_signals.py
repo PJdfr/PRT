@@ -26,6 +26,15 @@ def test_builtin_signals_registered():
     assert {"momentum", "carry", "seaso"} <= set(available_signals())
 
 
+def test_every_production_signal_has_a_whitepaper(config):
+    """The dashboard methodology tab is fed by Signal.whitepaper: every
+    signal with capital must document itself, formulas included."""
+    for name in config.signal_weights:
+        wp = get_signal(name).whitepaper
+        assert wp.strip(), name
+        assert "$$" in wp, f"{name}: whitepaper has no LaTeX formulas"
+
+
 def test_forecasts_bounded_and_scaled(ingested_db, config):
     view = DataView(ingested_db, config)
     for name in ("momentum", "carry", "seaso"):

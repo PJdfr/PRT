@@ -13,6 +13,7 @@ import pandas as pd
 from prt.config import load_config
 from prt.db import Database
 from prt.live.monitor import generate_orders, pnl_since_close, preview_targets
+from prt.signals.base import CONVENTIONS_DOC, get_signal
 from prt.signals.lab import forecast_correlation
 
 
@@ -32,7 +33,9 @@ def main() -> None:  # pragma: no cover - UI, exercised manually
     config = load_config(args.config)
     db = Database(args.db)
 
-    tabs = st.tabs(["PnL live", "Positions & risque", "Signaux", "Ordres", "Corrélations", "Santé data"])
+    tabs = st.tabs(
+        ["PnL live", "Positions & risque", "Signaux", "Ordres", "Corrélations", "Santé data", "Méthodo"]
+    )
 
     with tabs[0]:
         st.subheader("PnL depuis le dernier close")
@@ -101,6 +104,18 @@ def main() -> None:  # pragma: no cover - UI, exercised manually
         if not qlog.empty:
             qlog["day"] = qlog["ts"].str[:10]
             st.bar_chart(qlog.groupby("day")["n_points"].sum())
+
+    with tabs[6]:
+        st.subheader("Méthodologie des signaux")
+        st.markdown("#### Conventions communes")
+        st.markdown(CONVENTIONS_DOC)
+        st.divider()
+        for name, weight in sorted(config.signal_weights.items()):
+            sig = get_signal(name)
+            params = config.signal_params.get(name, {})
+            suffix = f" — paramètres : {params}" if params else ""
+            with st.expander(f"{name} (poids {weight:g}){suffix}", expanded=True):
+                st.markdown(sig.whitepaper or "_pas encore documenté_")
 
 
 if __name__ == "__main__":

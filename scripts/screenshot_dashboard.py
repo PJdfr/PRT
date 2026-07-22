@@ -8,7 +8,7 @@ import unicodedata
 
 from playwright.sync_api import sync_playwright
 
-TABS = ["PnL live", "Positions & risque", "Signaux", "Ordres", "Corrélations", "Santé data"]
+TABS = ["PnL live", "Positions & risque", "Signaux", "Ordres", "Corrélations", "Santé data", "Méthodo"]
 OUT = pathlib.Path("docs/screenshots")
 OUT.mkdir(parents=True, exist_ok=True)
 

@@ -70,6 +70,33 @@ def _circular_window_sum(arr: np.ndarray, window: int) -> np.ndarray:
 
 class Seasonality(Signal):
     name = "seaso"
+    whitepaper = r"""
+**Lookback** : les $n$ dernières années **civiles complètes**
+$[Y-n,\,Y-1]$ — l'année en cours est exclue, car le detrend annuel n'est
+connaissable qu'au 31/12 (l'inclure serait du lookahead). Le profil de
+l'année $Y$ est donc figé au 1er janvier : signal calendaire, **aucun lag
+d'exécution**.
+
+1. **Detrend par année** : $\tilde r_{y,d}=r_{y,d}-\bar r_y$ — le Sharpe
+   d'une fenêtre mesure alors la sur/sous-performance de ces jours
+   relativement au reste de leur année, pas le drift annuel.
+2. **Standardisation GARCH(1,1)** (moyenne nulle, fallback EWMA) :
+$$\sigma_t^2=\omega+\alpha\,\tilde r_{t-1}^2+\beta\,\sigma_{t-1}^2
+\qquad z_t=\tilde r_t/\sigma_t$$
+   les $z_t$ ne sont plus hétéroscédastiques.
+3. **Calendrier 365 jours** : chaque date est mappée sur son jour civil,
+   le 29/02 est fusionné dans le 28/02 ; les jours sans return sont
+   simplement absents de l'échantillon.
+4. **Sharpe par fenêtre centrée** (circulaire) : pour chaque jour $d$ et
+   chaque largeur $w\in[w_{\min},w_{\max}]$, on poole les $\sim n\times w$
+   returns standardisés des $n$ années autour de $d$ :
+$$s_w(d)=\frac{\operatorname{mean}\{z_{y,d'}\,:\,d'\in\mathcal{W}_w(d),\ y\in[Y-n,Y-1]\}}{\operatorname{std}\{z_{y,d'}\}}$$
+5. **Profil** : moyenne sur les largeurs de fenêtre, puis normalisation
+   commune vers $[-5,+5]$ :
+$$P(d)=\frac{1}{w_{\max}-w_{\min}+1}\sum_{w=w_{\min}}^{w_{\max}} s_w(d)$$
+
+Paramètres : $n$ (années), $w_{\min}$, $w_{\max}$.
+"""
 
     def compute(self, view: DataView, config: Config, inst_id: str) -> pd.Series:
         p = config.signal_params.get(self.name, {})
