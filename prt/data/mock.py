@@ -40,6 +40,7 @@ class MockProvider(DataProvider):
         self.today = pd.Timestamp(today)
         self._paths: dict[str, pd.Series] = {}
         self._roll_offset: dict[str, int] = {}
+        self._contract_roots: dict[str, str] = {}
         self._tick_count = 0
 
     # ---------------- synthetic paths ---------------------------------
@@ -53,6 +54,10 @@ class MockProvider(DataProvider):
         return self._paths[root]
 
     def _price_path(self, ticker: str) -> pd.Series:
+        if ticker in self._contract_roots:
+            # actual front contract: quotes at the unadjusted generic's level,
+            # like the real world (front price == last level of the series)
+            return self._base_path(self._contract_roots[ticker])
         root = _root(ticker)
         m = _GENERIC_RE.match(root)
         if m and m.group(2) == "2":
@@ -97,7 +102,9 @@ class MockProvider(DataProvider):
 
     def current_generic_ticker(self, generic_ticker: str) -> str:
         root = _root(generic_ticker)
-        return f"{root.split()[0]}_C{self._roll_count(root)}"
+        contract = f"{root.split()[0]}_C{self._roll_count(root)}"
+        self._contract_roots[contract] = root
+        return contract
 
     def contract_info(self, contract_ticker: str) -> dict:
         return {
