@@ -8,7 +8,8 @@ def test_production_config_loads():
     assert len(config.instruments) >= 55
     assert config.fund.capital_usd == 100_000_000
     assert config.fund.target_vol == 0.10
-    assert set(config.signal_weights) == {"momentum", "carry"}
+    assert set(config.signal_weights) == {"momentum", "carry", "seaso"}
+    assert config.signal_params["seaso"]["min_window"] == 10
 
 
 def test_every_instrument_is_complete():
