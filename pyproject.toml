@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prt"
+version = "0.1.0"
+description = "PRT - systematic macro fund infrastructure (Bloomberg futures + FX carry-adjusted series)"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.24",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# Only needed on the machine that has the Bloomberg terminal.
+bloomberg = ["xbbg>=0.7"]
+dashboard = ["streamlit>=1.30", "plotly>=5.18"]
+dev = ["pytest>=7.4", "ruff>=0.4"]
+
+[tool.setuptools.packages.find]
+include = ["prt*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "requires_terminal: needs a live Bloomberg terminal (skipped in CI)",
+]
+addopts = "-m 'not requires_terminal'"
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B"]
+ignore = ["E501"]

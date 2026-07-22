@@ -1,0 +1,140 @@
+# =====================================================================
+# PRT configuration — single source of truth for conventions & universe
+# =====================================================================
+# NOTE: Bloomberg tickers, roll-spec syntax (R:03_0_R = roll 3 days before
+# expiry, ratio backward adjustment) and settlement times are best-effort
+# and MUST be validated on the terminal before live use.
+
+fund:
+  capital_usd: 100_000_000
+  target_vol: 0.10            # annualised fund vol target
+  forecast_cap: 5.0           # forecasts live in [-5, +5]
+  forecast_avg: 2.5           # expected average |forecast|
+  idm: 1.5                    # instrument diversification multiplier
+  vol_ewma_span: 32           # span (days) of EWMA vol estimate
+  buffer_fraction: 0.10       # no-trade buffer, as fraction of average position size
+  publish_lag_minutes: 10     # settle price assumed known N min after settle time
+  decision_margin_minutes: 10 # we decide N min before the close we execute at
+
+data:
+  history_start: "2005-01-01"
+  # Daily ingestion batch (UTC).  knowledge_ts = max(event_ts + publish_lag,
+  # batch time of that day): data is only "known" once OUR system has it.
+  daily_batch_utc: "22:30"
+  checksum_points: 20         # trailing points compared to detect silent re-adjustment
+
+signals:
+  momentum: {weight: 0.5}
+  carry:    {weight: 0.5}
+
+# ---------------------------------------------------------------------
+# Exchange groups: IANA timezone + local settlement time (verify on terminal)
+# ---------------------------------------------------------------------
+exchanges:
+  us_rates:      {tz: America/Chicago,  settle_time: "14:00"}
+  cme_equity:    {tz: America/Chicago,  settle_time: "15:00"}
+  cbot_agri:     {tz: America/Chicago,  settle_time: "13:20"}
+  cme_livestock: {tz: America/Chicago,  settle_time: "13:05"}
+  nymex_energy:  {tz: America/New_York, settle_time: "14:30"}
+  comex_metals:  {tz: America/New_York, settle_time: "13:30"}
+  ice_softs:     {tz: America/New_York, settle_time: "13:30"}
+  eurex_rates:   {tz: Europe/Berlin,    settle_time: "17:15"}
+  eurex_equity:  {tz: Europe/Berlin,    settle_time: "17:30"}
+  ice_gilt:      {tz: Europe/London,    settle_time: "16:15"}
+  ice_ftse:      {tz: Europe/London,    settle_time: "16:35"}
+  ice_gasoil:    {tz: Europe/London,    settle_time: "16:30"}
+  jpx:           {tz: Asia/Tokyo,       settle_time: "15:15"}
+  asx:           {tz: Australia/Sydney, settle_time: "16:30"}
+  mx_rates:      {tz: America/Toronto,  settle_time: "15:00"}
+  tsx_equity:    {tz: America/Toronto,  settle_time: "16:15"}
+  fx_ny:         {tz: America/New_York, settle_time: "17:00"}
+  crypto_ref:    {tz: Europe/London,    settle_time: "16:00"}
+
+# ---------------------------------------------------------------------
+# Currency -> USD conversion (via the spot series of the FX instruments)
+# ---------------------------------------------------------------------
+fx_conversion:
+  EUR: {pair: EURUSD, invert: false}
+  GBP: {pair: GBPUSD, invert: false}
+  AUD: {pair: AUDUSD, invert: false}
+  NZD: {pair: NZDUSD, invert: false}
+  JPY: {pair: USDJPY, invert: true}
+  CHF: {pair: USDCHF, invert: true}
+  CAD: {pair: USDCAD, invert: true}
+  SEK: {pair: USDSEK, invert: true}
+  NOK: {pair: USDNOK, invert: true}
+
+# ---------------------------------------------------------------------
+# Universe.  Fields:
+#   adj  = roll-adjusted generic (signal + return series, backward ratio)
+#   g1/g2 = unadjusted generics 1 & 2 (futures term-structure carry)
+#   spot = spot series (fx only: notional conversion + carry vs CR)
+#   pv   = point value (contract multiplier, in local ccy per price point)
+#   cost_bps = half-spread cost estimate per trade, bps of notional
+# ---------------------------------------------------------------------
+instruments:
+  # ---- Bonds -----------------------------------------------------
+  - {id: TU,  name: "US 2Y Note",       class: bonds, exchange: us_rates, adj: "TU1 R:03_0_R Comdty", g1: "TU1 Comdty", g2: "TU2 Comdty", ccy: USD, pv: 2000, cost_bps: 0.4}
+  - {id: FV,  name: "US 5Y Note",       class: bonds, exchange: us_rates, adj: "FV1 R:03_0_R Comdty", g1: "FV1 Comdty", g2: "FV2 Comdty", ccy: USD, pv: 1000, cost_bps: 0.4}
+  - {id: TY,  name: "US 10Y Note",      class: bonds, exchange: us_rates, adj: "TY1 R:03_0_R Comdty", g1: "TY1 Comdty", g2: "TY2 Comdty", ccy: USD, pv: 1000, cost_bps: 0.4}
+  - {id: UXY, name: "US Ultra 10Y",     class: bonds, exchange: us_rates, adj: "UXY1 R:03_0_R Comdty", g1: "UXY1 Comdty", g2: "UXY2 Comdty", ccy: USD, pv: 1000, cost_bps: 0.5}
+  - {id: US,  name: "US Long Bond",     class: bonds, exchange: us_rates, adj: "US1 R:03_0_R Comdty", g1: "US1 Comdty", g2: "US2 Comdty", ccy: USD, pv: 1000, cost_bps: 0.5}
+  - {id: WN,  name: "US Ultra Bond",    class: bonds, exchange: us_rates, adj: "WN1 R:03_0_R Comdty", g1: "WN1 Comdty", g2: "WN2 Comdty", ccy: USD, pv: 1000, cost_bps: 0.6}
+  - {id: DU,  name: "Schatz 2Y",        class: bonds, exchange: eurex_rates, adj: "DU1 R:03_0_R Comdty", g1: "DU1 Comdty", g2: "DU2 Comdty", ccy: EUR, pv: 1000, cost_bps: 0.3}
+  - {id: OE,  name: "Bobl 5Y",          class: bonds, exchange: eurex_rates, adj: "OE1 R:03_0_R Comdty", g1: "OE1 Comdty", g2: "OE2 Comdty", ccy: EUR, pv: 1000, cost_bps: 0.4}
+  - {id: RX,  name: "Bund 10Y",         class: bonds, exchange: eurex_rates, adj: "RX1 R:03_0_R Comdty", g1: "RX1 Comdty", g2: "RX2 Comdty", ccy: EUR, pv: 1000, cost_bps: 0.4}
+  - {id: UB,  name: "Buxl 30Y",         class: bonds, exchange: eurex_rates, adj: "UB1 R:03_0_R Comdty", g1: "UB1 Comdty", g2: "UB2 Comdty", ccy: EUR, pv: 1000, cost_bps: 0.8}
+  - {id: OAT, name: "French OAT 10Y",   class: bonds, exchange: eurex_rates, adj: "OAT1 R:03_0_R Comdty", g1: "OAT1 Comdty", g2: "OAT2 Comdty", ccy: EUR, pv: 1000, cost_bps: 0.5}
+  - {id: IK,  name: "Italian BTP 10Y",  class: bonds, exchange: eurex_rates, adj: "IK1 R:03_0_R Comdty", g1: "IK1 Comdty", g2: "IK2 Comdty", ccy: EUR, pv: 1000, cost_bps: 0.6}
+  - {id: G,   name: "UK Gilt 10Y",      class: bonds, exchange: ice_gilt, adj: "G 1 R:03_0_R Comdty", g1: "G 1 Comdty", g2: "G 2 Comdty", ccy: GBP, pv: 1000, cost_bps: 0.5}
+  - {id: JB,  name: "JGB 10Y",          class: bonds, exchange: jpx, adj: "JB1 R:03_0_R Comdty", g1: "JB1 Comdty", g2: "JB2 Comdty", ccy: JPY, pv: 1000000, cost_bps: 0.3}
+  - {id: CN,  name: "Canada 10Y",       class: bonds, exchange: mx_rates, adj: "CN1 R:03_0_R Comdty", g1: "CN1 Comdty", g2: "CN2 Comdty", ccy: CAD, pv: 1000, cost_bps: 0.5}
+  - {id: YM3, name: "Australia 3Y",     class: bonds, exchange: asx, adj: "YM1 R:03_0_R Comdty", g1: "YM1 Comdty", g2: "YM2 Comdty", ccy: AUD, pv: 10000, cost_bps: 0.4}
+  - {id: XM,  name: "Australia 10Y",    class: bonds, exchange: asx, adj: "XM1 R:03_0_R Comdty", g1: "XM1 Comdty", g2: "XM2 Comdty", ccy: AUD, pv: 10000, cost_bps: 0.4}
+  # ---- Equity indices --------------------------------------------
+  - {id: ES,  name: "S&P 500 E-mini",   class: equity, exchange: cme_equity, adj: "ES1 R:03_0_R Index", g1: "ES1 Index", g2: "ES2 Index", ccy: USD, pv: 50, cost_bps: 0.5}
+  - {id: NQ,  name: "Nasdaq 100 E-mini", class: equity, exchange: cme_equity, adj: "NQ1 R:03_0_R Index", g1: "NQ1 Index", g2: "NQ2 Index", ccy: USD, pv: 20, cost_bps: 0.6}
+  - {id: RTY, name: "Russell 2000",     class: equity, exchange: cme_equity, adj: "RTY1 R:03_0_R Index", g1: "RTY1 Index", g2: "RTY2 Index", ccy: USD, pv: 50, cost_bps: 0.8}
+  - {id: VG,  name: "Euro Stoxx 50",    class: equity, exchange: eurex_equity, adj: "VG1 R:03_0_R Index", g1: "VG1 Index", g2: "VG2 Index", ccy: EUR, pv: 10, cost_bps: 0.5}
+  - {id: GX,  name: "DAX",              class: equity, exchange: eurex_equity, adj: "GX1 R:03_0_R Index", g1: "GX1 Index", g2: "GX2 Index", ccy: EUR, pv: 25, cost_bps: 0.6}
+  - {id: CF,  name: "CAC 40",           class: equity, exchange: eurex_equity, adj: "CF1 R:03_0_R Index", g1: "CF1 Index", g2: "CF2 Index", ccy: EUR, pv: 10, cost_bps: 0.7}
+  - {id: Z,   name: "FTSE 100",         class: equity, exchange: ice_ftse, adj: "Z 1 R:03_0_R Index", g1: "Z 1 Index", g2: "Z 2 Index", ccy: GBP, pv: 10, cost_bps: 0.6}
+  - {id: SM,  name: "SMI",              class: equity, exchange: eurex_equity, adj: "SM1 R:03_0_R Index", g1: "SM1 Index", g2: "SM2 Index", ccy: CHF, pv: 10, cost_bps: 0.7}
+  - {id: ST,  name: "FTSE MIB",         class: equity, exchange: eurex_equity, adj: "ST1 R:03_0_R Index", g1: "ST1 Index", g2: "ST2 Index", ccy: EUR, pv: 5, cost_bps: 0.9}
+  - {id: EO,  name: "AEX",              class: equity, exchange: eurex_equity, adj: "EO1 R:03_0_R Index", g1: "EO1 Index", g2: "EO2 Index", ccy: EUR, pv: 200, cost_bps: 0.8}
+  - {id: NK,  name: "Nikkei 225 (OSE)", class: equity, exchange: jpx, adj: "NK1 R:03_0_R Index", g1: "NK1 Index", g2: "NK2 Index", ccy: JPY, pv: 1000, cost_bps: 0.6}
+  - {id: TP,  name: "TOPIX",            class: equity, exchange: jpx, adj: "TP1 R:03_0_R Index", g1: "TP1 Index", g2: "TP2 Index", ccy: JPY, pv: 10000, cost_bps: 0.6}
+  - {id: XP,  name: "ASX SPI 200",      class: equity, exchange: asx, adj: "XP1 R:03_0_R Index", g1: "XP1 Index", g2: "XP2 Index", ccy: AUD, pv: 25, cost_bps: 0.8}
+  - {id: PT,  name: "S&P/TSX 60",       class: equity, exchange: tsx_equity, adj: "PT1 R:03_0_R Index", g1: "PT1 Index", g2: "PT2 Index", ccy: CAD, pv: 200, cost_bps: 0.8}
+  # ---- Commodities -----------------------------------------------
+  - {id: CL,  name: "WTI Crude",        class: commodity, exchange: nymex_energy, adj: "CL1 R:03_0_R Comdty", g1: "CL1 Comdty", g2: "CL2 Comdty", ccy: USD, pv: 1000, cost_bps: 1.0}
+  - {id: CO,  name: "Brent Crude",      class: commodity, exchange: ice_gasoil, adj: "CO1 R:03_0_R Comdty", g1: "CO1 Comdty", g2: "CO2 Comdty", ccy: USD, pv: 1000, cost_bps: 1.0}
+  - {id: NG,  name: "Natural Gas",      class: commodity, exchange: nymex_energy, adj: "NG1 R:03_0_R Comdty", g1: "NG1 Comdty", g2: "NG2 Comdty", ccy: USD, pv: 10000, cost_bps: 2.0}
+  - {id: HO,  name: "Heating Oil",      class: commodity, exchange: nymex_energy, adj: "HO1 R:03_0_R Comdty", g1: "HO1 Comdty", g2: "HO2 Comdty", ccy: USD, pv: 42000, cost_bps: 1.5}
+  - {id: XB,  name: "RBOB Gasoline",    class: commodity, exchange: nymex_energy, adj: "XB1 R:03_0_R Comdty", g1: "XB1 Comdty", g2: "XB2 Comdty", ccy: USD, pv: 42000, cost_bps: 1.5}
+  - {id: QS,  name: "Low-Sulphur Gasoil", class: commodity, exchange: ice_gasoil, adj: "QS1 R:03_0_R Comdty", g1: "QS1 Comdty", g2: "QS2 Comdty", ccy: USD, pv: 100, cost_bps: 1.5}
+  - {id: GC,  name: "Gold",             class: commodity, exchange: comex_metals, adj: "GC1 R:03_0_R Comdty", g1: "GC1 Comdty", g2: "GC2 Comdty", ccy: USD, pv: 100, cost_bps: 0.8}
+  - {id: SI,  name: "Silver",           class: commodity, exchange: comex_metals, adj: "SI1 R:03_0_R Comdty", g1: "SI1 Comdty", g2: "SI2 Comdty", ccy: USD, pv: 5000, cost_bps: 1.5}
+  - {id: HG,  name: "Copper (COMEX)",   class: commodity, exchange: comex_metals, adj: "HG1 R:03_0_R Comdty", g1: "HG1 Comdty", g2: "HG2 Comdty", ccy: USD, pv: 25000, cost_bps: 1.2}
+  - {id: PL,  name: "Platinum",         class: commodity, exchange: comex_metals, adj: "PL1 R:03_0_R Comdty", g1: "PL1 Comdty", g2: "PL2 Comdty", ccy: USD, pv: 50, cost_bps: 2.0}
+  - {id: C,   name: "Corn",             class: commodity, exchange: cbot_agri, adj: "C 1 R:03_0_R Comdty", g1: "C 1 Comdty", g2: "C 2 Comdty", ccy: USD, pv: 50, cost_bps: 1.5}
+  - {id: S,   name: "Soybeans",         class: commodity, exchange: cbot_agri, adj: "S 1 R:03_0_R Comdty", g1: "S 1 Comdty", g2: "S 2 Comdty", ccy: USD, pv: 50, cost_bps: 1.5}
+  - {id: W,   name: "Wheat (CBOT)",     class: commodity, exchange: cbot_agri, adj: "W 1 R:03_0_R Comdty", g1: "W 1 Comdty", g2: "W 2 Comdty", ccy: USD, pv: 50, cost_bps: 1.8}
+  - {id: SB,  name: "Sugar #11",        class: commodity, exchange: ice_softs, adj: "SB1 R:03_0_R Comdty", g1: "SB1 Comdty", g2: "SB2 Comdty", ccy: USD, pv: 1120, cost_bps: 2.0}
+  - {id: KC,  name: "Coffee C",         class: commodity, exchange: ice_softs, adj: "KC1 R:03_0_R Comdty", g1: "KC1 Comdty", g2: "KC2 Comdty", ccy: USD, pv: 375, cost_bps: 2.5}
+  - {id: CT,  name: "Cotton #2",        class: commodity, exchange: ice_softs, adj: "CT1 R:03_0_R Comdty", g1: "CT1 Comdty", g2: "CT2 Comdty", ccy: USD, pv: 500, cost_bps: 2.5}
+  - {id: CC,  name: "Cocoa",            class: commodity, exchange: ice_softs, adj: "CC1 R:03_0_R Comdty", g1: "CC1 Comdty", g2: "CC2 Comdty", ccy: USD, pv: 10, cost_bps: 2.5}
+  - {id: LC,  name: "Live Cattle",      class: commodity, exchange: cme_livestock, adj: "LC1 R:03_0_R Comdty", g1: "LC1 Comdty", g2: "LC2 Comdty", ccy: USD, pv: 400, cost_bps: 2.0}
+  # ---- FX (carry-adjusted series, traded as pair notional) -------
+  - {id: EURUSD, name: "EUR/USD", class: fx, kind: fx, exchange: fx_ny, adj: "EURUSDCR Curncy", spot: "EURUSD Curncy", ccy: USD, cost_bps: 0.3}
+  - {id: GBPUSD, name: "GBP/USD", class: fx, kind: fx, exchange: fx_ny, adj: "GBPUSDCR Curncy", spot: "GBPUSD Curncy", ccy: USD, cost_bps: 0.4}
+  - {id: AUDUSD, name: "AUD/USD", class: fx, kind: fx, exchange: fx_ny, adj: "AUDUSDCR Curncy", spot: "AUDUSD Curncy", ccy: USD, cost_bps: 0.4}
+  - {id: NZDUSD, name: "NZD/USD", class: fx, kind: fx, exchange: fx_ny, adj: "NZDUSDCR Curncy", spot: "NZDUSD Curncy", ccy: USD, cost_bps: 0.5}
+  - {id: USDJPY, name: "USD/JPY", class: fx, kind: fx, exchange: fx_ny, adj: "USDJPYCR Curncy", spot: "USDJPY Curncy", ccy: USD, cost_bps: 0.3}
+  - {id: USDCHF, name: "USD/CHF", class: fx, kind: fx, exchange: fx_ny, adj: "USDCHFCR Curncy", spot: "USDCHF Curncy", ccy: USD, cost_bps: 0.4}
+  - {id: USDCAD, name: "USD/CAD", class: fx, kind: fx, exchange: fx_ny, adj: "USDCADCR Curncy", spot: "USDCAD Curncy", ccy: USD, cost_bps: 0.4}
+  - {id: USDSEK, name: "USD/SEK", class: fx, kind: fx, exchange: fx_ny, adj: "USDSEKCR Curncy", spot: "USDSEK Curncy", ccy: USD, cost_bps: 0.6}
+  - {id: USDNOK, name: "USD/NOK", class: fx, kind: fx, exchange: fx_ny, adj: "USDNOKCR Curncy", spot: "USDNOK Curncy", ccy: USD, cost_bps: 0.6}
+  # ---- Crypto (CME futures; verify generic tickers on terminal) --
+  - {id: BTC, name: "CME Bitcoin",  class: crypto, exchange: crypto_ref, adj: "BTC1 R:03_0_R Curncy", g1: "BTC1 Curncy", g2: "BTC2 Curncy", ccy: USD, pv: 5, cost_bps: 5.0}
+  - {id: ETH, name: "CME Ether",    class: crypto, exchange: crypto_ref, adj: "ETH1 R:03_0_R Curncy", g1: "ETH1 Curncy", g2: "ETH2 Curncy", ccy: USD, pv: 50, cost_bps: 6.0}
