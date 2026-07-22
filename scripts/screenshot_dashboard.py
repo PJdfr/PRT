@@ -41,7 +41,17 @@ def main() -> None:
             # Streamlit scrolls inside an inner container, so full_page misses
             # anything below the fold: grow the viewport to the content height.
             height = page.evaluate(
-                "() => document.querySelector('[data-testid=\"stAppViewContainer\"]').scrollHeight"
+                """() => {
+                    const sels = ['[data-testid="stMainBlockContainer"]',
+                                  '[data-testid="stMain"]', 'section.main',
+                                  '[data-testid="stAppViewContainer"]', 'body'];
+                    let h = 0;
+                    for (const s of sels) {
+                        const el = document.querySelector(s);
+                        if (el) h = Math.max(h, el.scrollHeight);
+                    }
+                    return h;
+                }"""
             )
             page.set_viewport_size({"width": 1600, "height": min(int(height) + 80, 8000)})
             page.wait_for_timeout(800)
