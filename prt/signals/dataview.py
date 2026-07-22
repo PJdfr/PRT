@@ -89,7 +89,11 @@ class DataView:
 
     def _asof(self, inst_id: str, series_type: str, for_inst: str) -> pd.DataFrame:
         dec = self._decisions(for_inst)
-        left = pd.DataFrame({"exec_date": dec.index, "decision_ts": dec.values}).sort_values("decision_ts")
+        # .reset_index() (not .values, which silently drops the tz) so the
+        # decision column stays tz-aware and comparable with knowledge_ts
+        left = dec.rename("decision_ts").rename_axis("exec_date").reset_index()
+        left["decision_ts"] = left["decision_ts"].astype("datetime64[ns, UTC]")
+        left = left.sort_values("decision_ts")
         src = self._source(inst_id, series_type)
         if src.empty:
             out = left.assign(value=float("nan"), used_knowledge_ts=pd.NaT)
@@ -99,6 +103,7 @@ class DataView:
                 .sort_values("knowledge_ts")
                 .rename(columns={"knowledge_ts": "used_knowledge_ts"})
             )
+            right["used_knowledge_ts"] = right["used_knowledge_ts"].astype("datetime64[ns, UTC]")
             out = pd.merge_asof(
                 left,
                 right,
